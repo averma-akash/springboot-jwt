@@ -15,6 +15,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -29,6 +30,7 @@ import com.Springboot.jwt.example.model.Role;
 import com.Springboot.jwt.example.model.User;
 import com.Springboot.jwt.example.security.jwt.JwtUtils;
 import com.Springboot.jwt.example.security.services.UserDetailsImpl;
+import com.Springboot.jwt.example.security.services.UserDetailsServiceImpl;
 import com.Springboot.jwt.example.vo.JwtResponse;
 import com.Springboot.jwt.example.vo.LoginRequest;
 import com.Springboot.jwt.example.vo.MessageResponse;
@@ -50,6 +52,9 @@ public class AuthenticationController {
 
 	@Autowired
 	PasswordEncoder encoder;
+	
+	@Autowired
+	UserDetailsServiceImpl userDetailsService;
 
 	@Autowired
 	JwtUtils jwtUtils;
@@ -62,16 +67,19 @@ public class AuthenticationController {
 		Authentication authenticate = authenticationManager
 				.authenticate(new UsernamePasswordAuthenticationToken(login.getUsername(), login.getPassword()));
 
-		SecurityContextHolder.getContext().setAuthentication(authenticate);
-		String generateJsonToken = jwtUtils.generateJsonToken(authenticate);
+		//SecurityContextHolder.getContext().setAuthentication(authenticate);
+		
+		final UserDetails userDetails = userDetailsService.loadUserByUsername(login.getUsername());
 
-		UserDetailsImpl userDetails = (UserDetailsImpl) authenticate.getPrincipal();
+		final String generateJsonToken = jwtUtils.generateJsonToken(userDetails);
+		
+		//UserDetailsImpl userDetailsImpl = (UserDetailsImpl) authenticate.getPrincipal();
 
 		List<String> roles = userDetails.getAuthorities().stream().map(item -> item.getAuthority())
 				.collect(Collectors.toList());
 
-		JwtResponse jwtResponse = new JwtResponse(generateJsonToken, userDetails.getId(), userDetails.getUsername(),
-				userDetails.getEmail(), roles);
+		JwtResponse jwtResponse = new JwtResponse(generateJsonToken, null, userDetails.getUsername(),
+				"", roles);
 		return ResponseEntity.ok(jwtResponse);
 
 	}
